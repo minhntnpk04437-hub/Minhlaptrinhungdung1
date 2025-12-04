@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo ảnh cùng Minh</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Import Google GenAI SDK -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+            animation: blob 10s infinite;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .animate-fade-in-left {
+            animation: fadeInLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .hidden-el {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden font-sans text-slate-200 selection:bg-blue-500/30">
+
+    <!-- API Key Modal (Simple Overlay) -->
+    <div id="apiKeyModal" class="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full shadow-2xl border border-blue-500/20">
+            <div class="flex items-center gap-4 mb-6">
+                <!-- User Logo Small -->
+                <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYanhsIARAAABtbnRyUkdCIFhZWiAH4wAMAAEAAAAAAABhY3NwQVBQTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLWp4bCACufkBQHM6b/D/A/Tw9worAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtkZXNjAAABCAAAAERjcHJ0AAABTAAAACR3dHB0AAABcAAAABRjaGFkAAABhAAAACxjaWNwAAABsAAAAAxyWFlaAAABvAAAABRnWFlaAAAB0AAAABRiWFlaAAAB5AAAABRyVFJDAAAB+AAAACBnVFJDAAAB+AAAACBiVFJDAAAB+AAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACYAAAAcAFIARwBCAF8ARAA2ADUAXwBTAFIARwBfAFIAZQBsAF8AUwBSAEcAAG1sdWMAAAAAAAAAAQAAAAxlblVTAAAABgAAABwAQwBDADAAAFhZWiAAAAAAAAD21gABAAAAANMtc2YzMgAAAAAAAQxAAAAF3f//8yoAAAeSAAD9kP//+6P///2jAAAD2wAAwIFjaWNwAAAAAAENAAFYWVogAAAAAAAAb58AADj1AAADkFhZWiAAAAAAAABilgAAt4cAABjbWFlaIAAAAAAAACSiAAAPhQAAttZwYXJhAAAAAAADAAAAAmZmAADypwAADVkAABPQAAAKW//bAEMAAgEBAQEBAgEBAQICAgICBAMCAgICBQQEAwQGBQYGBgUGBgYHCQgGBwkHBgYICwgJCgoKCgoGCAsMCwoMCQoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/AABEIADIAMgMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APiT/h2b/wBFr/8ALX/+7KP+HZv/AEWv/wAtf/7sr7kooA+G/wDh2b/0Wv8A8tf/AO7KP+HZv/Ra/wDy1/8A7sr7kooA+G/+HZv/AEWv/wAtf/7so/4dm/8ARa//AC1//uyvuSigD4b/AOHZv/Ra/wDy1/8A7so/4dm/9Fr/APLX/wDuyvuSigD4b/4dm/8ARa//AC1//uyivuSigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z" class="w-10 h-10 rounded-full border border-white/20">
+                <h2 class="text-xl font-bold text-white">Cấu hình API</h2>
+            </div>
+            <p class="text-slate-300 mb-4 text-sm">Vui lòng nhập Google Gemini API Key để sử dụng ứng dụng.</p>
+            <input type="password" id="apiKeyInput" placeholder="Nhập API Key của bạn (AIza...)" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 mb-4">
+            <button id="saveApiKeyBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/30">
+                Bắt đầu
+            </button>
+            <p class="text-xs text-slate-500 mt-4 text-center">API Key của bạn chỉ được lưu trên trình duyệt này.</p>
+        </div>
+    </div>
+
+    <!-- Background Decorations -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-20%] left-[20%] w-[500px] h-[500px] bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-panel sticky top-0 z-50 px-6 py-3 flex items-center justify-between shadow-2xl border-b border-white/5 backdrop-blur-xl">
+        <div class="flex items-center gap-4 cursor-pointer group" onclick="resetApp()">
+            <!-- Brand Logo -->
+            <div class="relative w-12 h-12">
+                <div class="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-xl blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
+                <img 
+                    src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYanhsIARAAABtbnRyUkdCIFhZWiAH4wAMAAEAAAAAAABhY3NwQVBQTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLWp4bCACufkBQHM6b/D/A/Tw9worAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtkZXNjAAABCAAAAERjcHJ0AAABTAAAACR3dHB0AAABcAAAABRjaGFkAAABhAAAACxjaWNwAAABsAAAAAxyWFlaAAABvAAAABRnWFlaAAAB0AAAABRiWFlaAAAB5AAAABRyVFJDAAAB+AAAACBnVFJDAAAB+AAAACBiVFJDAAAB+AAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACYAAAAcAFIARwBCAF8ARAA2ADUAXwBTAFIARwBfAFIAZQBsAF8AUwBSAEcAAG1sdWMAAAAAAAAAAQAAAAxlblVTAAAABgAAABwAQwBDADAAAFhZWiAAAAAAAAD21gABAAAAANMtc2YzMgAAAAAAAQxAAAAF3f//8yoAAAeSAAD9kP//+6P///2jAAAD2wAAwIFjaWNwAAAAAAENAAFYWVogAAAAAAAAb58AADj1AAADkFhZWiAAAAAAAABilgAAt4cAABjbWFlaIAAAAAAAACSiAAAPhQAAttZwYXJhAAAAAAADAAAAAmZmAADypwAADVkAABPQAAAKW//bAEMAAgEBAQEBAgEBAQICAgICBAMCAgICBQQEAwQGBQYGBgUGBgYHCQgGBwkHBgYICwgJCgoKCgoGCAsMCwoMCQoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/AABEIADIAMgMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APiT/h2b/wBFr/8ALX/+7KP+HZv/AEWv/wAtf/7sr7kooA+G/wDh2b/0Wv88tf/AO7KP+HZv/Ra/wDy1/8A7sr7kooA+G/+HZv/AEWv/wAtf/7so/4dm/8ARa//AC1//uyvuSigD4b/AOHZv/Ra/wDy1/8A7so/4dm/9Fr/APLX/wDuyvuSigD4b/4dm/8ARa//AC1//uyivuSigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z" 
+                    alt="Logo Minh" 
+                    class="relative w-full h-full rounded-xl object-cover border border-white/20 shadow-lg transform group-hover:scale-105 transition-transform bg-slate-800"
+                >
+            </div>
+            
+            <div class="flex flex-col">
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 tracking-tight">
+                    Tạo ảnh cùng Minh
+                </h1>
+                <p class="text-xs text-slate-400 font-medium tracking-wide uppercase group-hover:text-blue-300 transition-colors">AI Studio Professional</p>
+            </div>
+        </div>
+        
+        <nav class="hidden md:flex gap-8 text-sm font-medium text-slate-400">
+            <button onclick="resetApp()" class="hover:text-white transition-colors relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-0.5 after:bg-blue-400 after:transition-all hover:after:w-full">Trang chủ</button>
+            <button class="hover:text-white transition-colors">Thư viện</button>
+            <button class="hover:text-white transition-colors">Liên hệ</button>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col p-4 md:p-8 max-w-7xl mx-auto w-full gap-6">
+        
+        <!-- Error Alert -->
+        <div id="error-msg" class="hidden-el bg-red-500/10 border border-red-500/50 text-red-200 px-6 py-4 rounded-xl mb-6 flex items-center gap-4 animate-fade-in shadow-lg shadow-red-900/20">
+            <i class="fa-solid fa-circle-exclamation text-xl"></i>
+            <span class="font-medium" id="error-text"></span>
+            <button onclick="clearError()" class="ml-auto hover:text-white hover:bg-red-500/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- View: Upload -->
+        <div id="upload-view" class="flex-grow flex flex-col items-center justify-center animate-fade-in-up py-10">
+            <div class="text-center mb-12 space-y-4">
+                <h2 class="text-5xl md:text-6xl font-extrabold bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500 drop-shadow-sm">
+                    Sáng tạo không giới hạn
+                </h2>
+                <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                    Công cụ chỉnh sửa ảnh AI chuyên nghiệp của <span class="text-blue-400 font-semibold">Minh</span>. <br>
+                    Tư vấn bối cảnh & Tạo ảnh hoạt họa chỉ trong vài giây.
+                </p>
+            </div>
+
+            <div 
+                class="w-full max-w-3xl h-96 border-2 border-dashed border-slate-600 rounded-[2rem] bg-slate-800/30 hover:bg-slate-800/60 hover:border-blue-500/50 transition-all cursor-pointer flex flex-col items-center justify-center gap-6 group relative overflow-hidden backdrop-blur-sm shadow-2xl"
+                onclick="document.getElementById('fileInput').click()"
+                ondragover="handleDragOver(event)"
+                ondrop="handleDrop(event)"
+            >
+                <input id="fileInput" type="file" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                
+                <div class="relative">
+                    <div class="absolute inset-0 bg-blue-500 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                    <div class="w-24 h-24 rounded-full bg-slate-700/80 border border-slate-600 flex items-center justify-center group-hover:scale-110 group-hover:border-blue-400 transition-all duration-300 relative z-10">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-blue-400 group-hover:text-blue-300"></i>
+                    </div>
+                </div>
+                
+                <div class="text-center z-10 space-y-2">
+                    <h3 class="text-2xl font-bold text-slate-200 group-hover:text-white transition-colors">Tải ảnh lên</h3>
+                    <p class="text-slate-400 group-hover:text-slate-300">Hỗ trợ JPG, PNG (Tối đa 10MB)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Editor / Result -->
+        <div id="editor-view" class="hidden-el grid grid-cols-1 lg:grid-cols-12 gap-6 h-full min-h-[600px]">
+            
+            <!-- Left Sidebar: Tools (4 cols) -->
+            <div class="lg:col-span-4 flex flex-col gap-6 order-2 lg:order-1 animate-fade-in-left">
+                
+                <!-- Image Preview Card -->
+                <div class="glass-panel p-5 rounded-3xl shadow-xl flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-image"></i> Ảnh gốc
+                        </h3>
+                        <button onclick="resetApp()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-medium transition-colors">
+                            <i class="fa-solid fa-trash-can"></i> Xóa
+                        </button>
+                    </div>
+                    <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-900 border border-slate-700/50 relative shadow-inner">
+                        <img id="preview-image" src="" class="w-full h-full object-contain">
+                    </div>
+                </div>
+
+                <!-- Tools Menu -->
+                <div class="glass-panel p-5 rounded-3xl shadow-xl flex flex-col gap-3 flex-grow">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Studio AI
+                    </h3>
+                    
+                    <button 
+                        id="btn-consult"
+                        onclick="runConsultation()" 
+                        class="w-full py-4 px-5 rounded-2xl flex items-center gap-4 bg-slate-800 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden"
+                    >
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-camera-retro text-xl"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="font-bold text-lg text-slate-100">Tư vấn Bối cảnh</div>
+                            <div class="text-xs text-slate-400 font-medium">Phân tích bố cục & ánh sáng</div>
+                        </div>
+                        <div id="check-consult" class="hidden-el absolute right-4 top-1/2 -translate-y-1/2 text-white/20 text-4xl">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                    </button>
+
+                    <button 
+                        id="btn-cartoon"
+                        onclick="runCartoon()" 
+                        class="w-full py-4 px-5 rounded-2xl flex items-center gap-4 bg-slate-800 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden"
+                    >
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-palette text-xl"></i>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="font-bold text-lg text-slate-100">Phong cách Hoạt họa</div>
+                            <div class="text-xs text-slate-400 font-medium">Chuyển ảnh thành tranh vẽ</div>
+                        </div>
+                        <div id="check-cartoon" class="hidden-el absolute right-4 top-1/2 -translate-y-1/2 text-white/20 text-4xl">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Content: Display Area (8 cols) -->
+            <div class="lg:col-span-8 glass-panel rounded-[2.5rem] p-8 min-h-[600px] flex flex-col relative order-1 lg:order-2 shadow-2xl border border-white/5 overflow-hidden">
+                
+                <!-- Background Glow -->
+                <div class="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -z-10"></div>
+
+                <!-- Loading State Overlay -->
+                <div id="loading-overlay" class="hidden-el absolute inset-0 z-30 bg-slate-900/80 backdrop-blur-xl flex flex-col items-center justify-center animate-fade-in">
+                    <div class="loader mb-8 scale-150"></div>
+                    <h3 class="text-2xl font-bold text-white mb-2">Đang xử lý</h3>
+                    <p id="loading-text" class="text-blue-300 font-medium animate-pulse tracking-wide">Vui lòng chờ...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="flex-grow flex flex-col items-center justify-center text-slate-500 opacity-60">
+                    <div class="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-photo-film text-5xl"></i>
+                    </div>
+                    <p class="text-xl font-medium">Chọn một tính năng từ bảng điều khiển bên trái</p>
+                </div>
+
+                <!-- Consultation Result -->
+                <div id="result-consult" class="hidden-el h-full flex flex-col animate-fade-in">
+                    <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+                        <h2 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center gap-3">
+                            <i class="fa-solid fa-user-doctor text-blue-500"></i> Góc nhìn Chuyên gia
+                        </h2>
+                        <button onclick="showEmptyState()" class="text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-medium">
+                            <i class="fa-solid fa-xmark mr-1"></i> Đóng
+                        </button>
+                    </div>
+                    
+                    <div class="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                        <div class="bg-slate-800/30 rounded-2xl p-8 border border-slate-700/50 shadow-inner">
+                            <div id="advice-content" class="prose prose-invert prose-lg max-w-none whitespace-pre-wrap leading-loose text-slate-200 font-light">
+                                <!-- Content will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cartoon Generation Result -->
+                <div id="result-cartoon" class="hidden-el h-full flex flex-col animate-fade-in">
+                    <div class="w-full flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                        <h2 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 flex items-center gap-3">
+                            <i class="fa-solid fa-wand-sparkles text-purple-500"></i> Kết quả Hoạt họa
+                        </h2>
+                        <div class="flex gap-3">
+                            <button onclick="showEmptyState()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors">Quay lại</button>
+                            <button onclick="downloadGeneratedImage()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold shadow-lg shadow-purple-900/40 transform hover:-translate-y-0.5 transition-all">
+                                <i class="fa-solid fa-download mr-2"></i> Lưu ảnh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow w-full flex items-center justify-center bg-black/40 rounded-3xl overflow-hidden border border-slate-700/50 p-6 relative group">
+                        <!-- Grid pattern background for transparency effect -->
+                        <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#475569 1px, transparent 1px); background-size: 20px 20px;"></div>
+                        
+                        <img id="generated-image" src="" class="relative z-10 max-h-[65vh] max-w-full object-contain rounded-xl shadow-2xl hover:scale-[1.02] transition-transform duration-500 ease-out ring-1 ring-white/10">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="mt-auto py-8 text-center border-t border-white/5 bg-slate-900/50 backdrop-blur-sm">
+        <p class="text-slate-500 font-medium">&copy; 2024 Tạo ảnh cùng Minh. <span class="text-slate-600 mx-2">|</span> Powered by Google Gemini & Imagen</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script type="module">
+        import { GoogleGenAI } from "@google/genai";
+
+        // Global State
+        let uploadedImageBase64 = null;
+        let generatedImageUrl = null;
+        let currentApiKey = localStorage.getItem('gemini_api_key') || '';
+        let aiClient = null;
+
+        // Initialize API Client
+        function initClient() {
+            if (currentApiKey) {
+                document.getElementById('apiKeyModal').classList.add('hidden-el');
+                try {
+                    aiClient = new GoogleGenAI({ apiKey: currentApiKey });
+                } catch (e) {
+                    showError('API Key không hợp lệ hoặc lỗi khởi tạo.');
+                }
+            } else {
+                document.getElementById('apiKeyModal').classList.remove('hidden-el');
+            }
+        }
+
+        // --- Event Listeners & Global Functions (attached to window for HTML access) ---
+
+        window.saveApiKey = function() {
+            const input = document.getElementById('apiKeyInput');
+            const key = input.value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                currentApiKey = key;
+                initClient();
+            }
+        }
+
+        document.getElementById('saveApiKeyBtn').addEventListener('click', window.saveApiKey);
+
+        window.handleDragOver = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        window.handleDrop = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        }
+
+        window.handleFileSelect = function(e) {
+            if (e.target.files && e.target.files[0]) {
+                processFile(e.target.files[0]);
+            }
+        }
+
+        window.resetApp = function() {
+            uploadedImageBase64 = null;
+            generatedImageUrl = null;
+            
+            document.getElementById('upload-view').classList.remove('hidden-el');
+            document.getElementById('editor-view').classList.add('hidden-el');
+            document.getElementById('fileInput').value = ''; // Reset input
+            clearError();
+            showEmptyState();
+        }
+
+        window.clearError = function() {
+            document.getElementById('error-msg').classList.add('hidden-el');
+        }
+
+        window.showEmptyState = function() {
+            document.getElementById('empty-state').classList.remove('hidden-el');
+            document.getElementById('result-consult').classList.add('hidden-el');
+            document.getElementById('result-cartoon').classList.add('hidden-el');
+            
+            // Reset button styles
+            setActiveButton(null);
+        }
+
+        window.runConsultation = async function() {
+            if (!checkRequirements()) return;
+            
+            setLoading(true, 'Đang phân tích hình ảnh và soạn thảo lời khuyên...');
+            setActiveButton('consult');
+
+            try {
+                const base64Data = uploadedImageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+                
+                const response = await aiClient.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: {
+                        parts: [
+                            {
+                                inlineData: {
+                                    mimeType: 'image/jpeg',
+                                    data: base64Data
+                                }
+                            },
+                            {
+                                text: 'Bạn là một chuyên gia nhiếp ảnh và nghệ thuật thị giác hàng đầu. Hãy phân tích bức ảnh này. Đưa ra nhận xét về bố cục, ánh sáng, màu sắc. Sau đó, hãy tư vấn cụ thể để cải thiện bức ảnh này (ví dụ: crop thế nào, chỉnh màu ra sao, thêm bối cảnh gì cho phù hợp). Hãy trả lời bằng tiếng Việt một cách chuyên nghiệp, thân thiện và trình bày dễ đọc (dùng gạch đầu dòng).'
+                            }
+                        ]
+                    },
+                    config: { temperature: 0.7 }
+                });
+
+                const advice = response.text || 'Không thể nhận được phản hồi từ AI.';
+                
+                // Display result
+                document.getElementById('advice-content').innerText = advice;
+                document.getElementById('empty-state').classList.add('hidden-el');
+                document.getElementById('result-consult').classList.remove('hidden-el');
+                document.getElementById('result-cartoon').classList.add('hidden-el');
+
+            } catch (err) {
+                console.error(err);
+                showError('Có lỗi xảy ra khi lấy tư vấn từ AI. Kiểm tra API Key hoặc thử lại sau.');
+                setActiveButton(null);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        window.runCartoon = async function() {
+            if (!checkRequirements()) return;
+
+            setLoading(true, 'Đang vẽ lại ảnh theo phong cách hoạt hình (có thể mất vài giây)...');
+            setActiveButton('cartoon');
+
+            try {
+                const base64Data = uploadedImageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
+
+                // Step 1: Get description
+                const descriptionResponse = await aiClient.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: {
+                        parts: [
+                            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
+                            { text: 'Describe the main subject, setting, composition, and colors of this image in English. Keep it concise but descriptive.' }
+                        ]
+                    }
+                });
+
+                const description = descriptionResponse.text;
+                if (!description) throw new Error('Không thể phân tích ảnh gốc.');
+
+                // Step 2: Generate Image
+                const cartoonPrompt = `${description}. Cartoon style, vibrant colors, clean lines, high quality digital art, disney pixar style, 3d render.`;
+
+                const imageResponse = await aiClient.models.generateImages({
+                    model: 'imagen-3.0-generate-001', // Note: Using 3.0 as 4.0 might be restricted in some keys
+                    prompt: cartoonPrompt,
+                    config: {
+                        numberOfImages: 1,
+                        aspectRatio: '1:1',
+                        outputMimeType: 'image/jpeg'
+                    }
+                });
+
+                if (imageResponse.generatedImages && imageResponse.generatedImages.length > 0) {
+                    const newImageBase64 = `data:image/jpeg;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
+                    generatedImageUrl = newImageBase64;
+                    document.getElementById('generated-image').src = newImageBase64;
+                    
+                    document.getElementById('empty-state').classList.add('hidden-el');
+                    document.getElementById('result-cartoon').classList.remove('hidden-el');
+                    document.getElementById('result-consult').classList.add('hidden-el');
+                } else {
+                    throw new Error('Không tạo được ảnh.');
+                }
+
+            } catch (err) {
+                console.error(err);
+                showError('Không thể tạo ảnh hoạt hình lúc này. Hãy thử lại sau hoặc kiểm tra quyền truy cập model Imagen.');
+                setActiveButton(null);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        window.downloadGeneratedImage = function() {
+            if (!generatedImageUrl) return;
+            const link = document.createElement('a');
+            link.href = generatedImageUrl;
+            link.download = 'tao-anh-cung-minh-result.jpg';
+            link.click();
+        }
+
+        // --- Internal Helpers ---
+
+        function processFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Vui lòng chọn một tệp hình ảnh hợp lệ (JPG, PNG).');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImageBase64 = e.target.result;
+                document.getElementById('preview-image').src = uploadedImageBase64;
+                
+                // Switch View
+                document.getElementById('upload-view').classList.add('hidden-el');
+                document.getElementById('editor-view').classList.remove('hidden-el');
+                
+                clearError();
+                showEmptyState();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function checkRequirements() {
+            if (!uploadedImageBase64) return false;
+            if (!aiClient) {
+                document.getElementById('apiKeyModal').classList.remove('hidden-el');
+                return false;
+            }
+            return true;
+        }
+
+        function showError(msg) {
+            document.getElementById('error-text').innerText = msg;
+            document.getElementById('error-msg').classList.remove('hidden-el');
+        }
+
+        function setLoading(isLoading, text = '') {
+            const overlay = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            
+            if (isLoading) {
+                loadingText.innerText = text;
+                overlay.classList.remove('hidden-el');
+            } else {
+                overlay.classList.add('hidden-el');
+            }
+        }
+
+        function setActiveButton(type) {
+            const btnConsult = document.getElementById('btn-consult');
+            const btnCartoon = document.getElementById('btn-cartoon');
+            const checkConsult = document.getElementById('check-consult');
+            const checkCartoon = document.getElementById('check-cartoon');
+
+            // Reset classes
+            const baseClasses = "w-full py-4 px-5 rounded-2xl flex items-center gap-4 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden";
+            const activeConsult = baseClasses + " from-blue-600 to-blue-700 bg-gradient-to-r border-blue-500";
+            const inactive = baseClasses + " bg-slate-800 border-transparent";
+            const activeCartoon = baseClasses + " from-purple-600 to-purple-700 bg-gradient-to-r border-purple-500";
+
+            if (type === 'consult') {
+                btnConsult.className = activeConsult;
+                btnCartoon.className = inactive;
+                checkConsult.classList.remove('hidden-el');
+                checkCartoon.classList.add('hidden-el');
+            } else if (type === 'cartoon') {
+                btnConsult.className = inactive;
+                btnCartoon.className = activeCartoon;
+                checkConsult.classList.add('hidden-el');
+                checkCartoon.classList.remove('hidden-el');
+            } else {
+                btnConsult.className = inactive;
+                btnCartoon.className = inactive;
+                checkConsult.classList.add('hidden-el');
+                checkCartoon.classList.add('hidden-el');
+            }
+        }
+
+        // Initialize on load
+        initClient();
+    </script>
+</body>
+</html>
