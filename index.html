@@ -3,19 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tạo ảnh cùng Minh</title>
+    <title>Tạo ảnh cùng Minh AI</title>
+    <!-- Tailwind CSS (CDN for standalone usage) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Import Google GenAI SDK -->
+    <!-- Import Google GenAI SDK via ESM for browser -->
     <script type="importmap">
-      {
-        "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
-        }
-      }
-    </script>
+{
+  "imports": {
+    "@google/genai": "https://esm.run/@google/genai",
+    "rxjs": "https://aistudiocdn.com/rxjs@^7.8.2?conditions=es2015",
+    "rxjs/operators": "https://aistudiocdn.com/rxjs@^7.8.2/operators?conditions=es2015",
+    "rxjs/ajax": "https://aistudiocdn.com/rxjs@^7.8.2/ajax?conditions=es2015",
+    "rxjs/webSocket": "https://aistudiocdn.com/rxjs@^7.8.2/webSocket?conditions=es2015",
+    "rxjs/testing": "https://aistudiocdn.com/rxjs@^7.8.2/testing?conditions=es2015",
+    "rxjs/fetch": "https://aistudiocdn.com/rxjs@^7.8.2/fetch?conditions=es2015",
+    "@angular/core": "https://next.esm.sh/@angular/core@^21.0.3?external=rxjs"
+  }
+}
+</script>
 
     <style>
         body {
@@ -100,19 +110,20 @@
 <body class="min-h-screen flex flex-col relative overflow-x-hidden font-sans text-slate-200 selection:bg-blue-500/30">
 
     <!-- API Key Modal (Simple Overlay) -->
-    <div id="apiKeyModal" class="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-md w-full shadow-2xl border border-blue-500/20">
+    <div id="apiKeyModal" class="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 hidden-el">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full shadow-2xl border border-blue-500/20 animate-fade-in-up">
             <div class="flex items-center gap-4 mb-6">
-                <!-- User Logo Small -->
-                <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYanhsIARAAABtbnRyUkdCIFhZWiAH4wAMAAEAAAAAAABhY3NwQVBQTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLWp4bCACufkBQHM6b/D/A/Tw9worAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtkZXNjAAABCAAAAERjcHJ0AAABTAAAACR3dHB0AAABcAAAABRjaGFkAAABhAAAACxjaWNwAAABsAAAAAxyWFlaAAABvAAAABRnWFlaAAAB0AAAABRiWFlaAAAB5AAAABRyVFJDAAAB+AAAACBnVFJDAAAB+AAAACBiVFJDAAAB+AAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACYAAAAcAFIARwBCAF8ARAA2ADUAXwBTAFIARwBfAFIAZQBsAF8AUwBSAEcAAG1sdWMAAAAAAAAAAQAAAAxlblVTAAAABgAAABwAQwBDADAAAFhZWiAAAAAAAAD21gABAAAAANMtc2YzMgAAAAAAAQxAAAAF3f//8yoAAAeSAAD9kP//+6P///2jAAAD2wAAwIFjaWNwAAAAAAENAAFYWVogAAAAAAAAb58AADj1AAADkFhZWiAAAAAAAABilgAAt4cAABjbWFlaIAAAAAAAACSiAAAPhQAAttZwYXJhAAAAAAADAAAAAmZmAADypwAADVkAABPQAAAKW//bAEMAAgEBAQEBAgEBAQICAgICBAMCAgICBQQEAwQGBQYGBgUGBgYHCQgGBwkHBgYICwgJCgoKCgoGCAsMCwoMCQoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/AABEIADIAMgMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APiT/h2b/wBFr/8ALX/+7KP+HZv/AEWv/wAtf/7sr7kooA+G/wDh2b/0Wv8A8tf/AO7KP+HZv/Ra/wDy1/8A7sr7kooA+G/+HZv/AEWv/wAtf/7so/4dm/8ARa//AC1//uyvuSigD4b/AOHZv/Ra/wDy1/8A7so/4dm/9Fr/APLX/wDuyvuSigD4b/4dm/8ARa//AC1//uyivuSigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z" class="w-10 h-10 rounded-full border border-white/20">
+                <div class="w-10 h-10 rounded-full border border-white/20 overflow-hidden bg-slate-800">
+                     <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYanhsIARAAABtbnRyUkdCIFhZWiAH4wAMAAEAAAAAAABhY3NwQVBQTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLWp4bCACufkBQHM6b/D/A/Tw9worAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtkZXNjAAABCAAAAERjcHJ0AAABTAAAACR3dHB0AAABcAAAABRjaGFkAAABhAAAACxjaWNwAAABsAAAAAxyWFlaAAABvAAAABRnWFlaAAAB0AAAABRiWFlaAAAB5AAAABRyVFJDAAAB+AAAACBnVFJDAAAB+AAAACBiVFJDAAAB+AAAACBtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACYAAAAcAFIARwBCAF8ARAA2ADUAXwBTAFIARwBfAFIAZQBsAF8AUwBSAEcAAG1sdWMAAAAAAAAAAQAAAAxlblVTAAAABgAAABwAQwBDADAAAFhZWiAAAAAAAAD21gABAAAAANMtc2YzMgAAAAAAAQxAAAAF3f//8yoAAAeSAAD9kP//+6P///2jAAAD2wAAwIFjaWNwAAAAAAENAAFYWVogAAAAAAAAb58AADj1AAADkFhZWiAAAAAAAABilgAAt4cAABjbWFlaIAAAAAAAACSiAAAPhQAAttZwYXJhAAAAAAADAAAAAmZmAADypwAADVkAABPQAAAKW//bAEMAAgEBAQEBAgEBAQICAgICBAMCAgICBQQEAwQGBQYGBgUGBgYHCQgGBwkHBgYICwgJCgoKCgoGCAsMCwoMCQoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/bAEMBAgICAgICBQMDBQoHBgcKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCv/AABEIADIAMgMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APiT/h2b/wBFr/8ALX/+7KP+HZv/AEWv/wAtf/7sr7kooA+G/wDh2b/0Wv8A8tf/AO7KP+HZv/Ra/wDy1/8A7sr7kooA+G/+HZv/AEWv/wAtf/7so/4dm/8ARa//AC1//uyvuSigD4b/AOHZv/Ra/wDy1/8A7so/4dm/9Fr/APLX/wDuyvuSigD4b/4dm/8ARa//AC1//uyivuSigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z" class="w-full h-full object-cover">
+                </div>
                 <h2 class="text-xl font-bold text-white">Cấu hình API</h2>
             </div>
-            <p class="text-slate-300 mb-4 text-sm">Vui lòng nhập Google Gemini API Key để sử dụng ứng dụng.</p>
-            <input type="password" id="apiKeyInput" placeholder="Nhập API Key của bạn (AIza...)" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 mb-4">
-            <button id="saveApiKeyBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/30">
-                Bắt đầu
+            <p class="text-slate-300 mb-4 text-sm leading-relaxed">Vui lòng nhập <strong>Google Gemini API Key</strong> để sử dụng.<br>API Key của bạn được lưu cục bộ trên trình duyệt.</p>
+            <input type="password" id="apiKeyInput" placeholder="Nhập API Key (AIza...)" class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 mb-4 focus:ring-1 focus:ring-blue-500 transition-all">
+            <button id="saveApiKeyBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/30 active:scale-95">
+                Bắt đầu sáng tạo
             </button>
-            <p class="text-xs text-slate-500 mt-4 text-center">API Key của bạn chỉ được lưu trên trình duyệt này.</p>
+            <p class="text-xs text-slate-500 mt-4 text-center">Chưa có key? <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Lấy tại đây</a></p>
         </div>
     </div>
 
@@ -125,7 +136,7 @@
 
     <!-- Header -->
     <header class="glass-panel sticky top-0 z-50 px-6 py-3 flex items-center justify-between shadow-2xl border-b border-white/5 backdrop-blur-xl">
-        <div class="flex items-center gap-4 cursor-pointer group" onclick="resetApp()">
+        <div class="flex items-center gap-4 cursor-pointer group" onclick="window.resetApp()">
             <!-- Brand Logo -->
             <div class="relative w-12 h-12">
                 <div class="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-xl blur opacity-50 group-hover:opacity-100 transition duration-500"></div>
@@ -145,9 +156,9 @@
         </div>
         
         <nav class="hidden md:flex gap-8 text-sm font-medium text-slate-400">
-            <button onclick="resetApp()" class="hover:text-white transition-colors relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-0.5 after:bg-blue-400 after:transition-all hover:after:w-full">Trang chủ</button>
-            <button class="hover:text-white transition-colors">Thư viện</button>
-            <button class="hover:text-white transition-colors">Liên hệ</button>
+            <button onclick="window.resetApp()" class="hover:text-white transition-colors relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-0.5 after:bg-blue-400 after:transition-all hover:after:w-full">Trang chủ</button>
+            <button onclick="window.resetApp()" class="hover:text-white transition-colors">Làm mới</button>
+            <a href="#" class="hover:text-white transition-colors">Liên hệ</a>
         </nav>
     </header>
 
@@ -157,8 +168,8 @@
         <!-- Error Alert -->
         <div id="error-msg" class="hidden-el bg-red-500/10 border border-red-500/50 text-red-200 px-6 py-4 rounded-xl mb-6 flex items-center gap-4 animate-fade-in shadow-lg shadow-red-900/20">
             <i class="fa-solid fa-circle-exclamation text-xl"></i>
-            <span class="font-medium" id="error-text"></span>
-            <button onclick="clearError()" class="ml-auto hover:text-white hover:bg-red-500/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            <span class="font-medium flex-1" id="error-text"></span>
+            <button onclick="window.clearError()" class="hover:text-white hover:bg-red-500/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i class="fa-solid fa-xmark"></i></button>
         </div>
 
         <!-- View: Upload -->
@@ -176,10 +187,10 @@
             <div 
                 class="w-full max-w-3xl h-96 border-2 border-dashed border-slate-600 rounded-[2rem] bg-slate-800/30 hover:bg-slate-800/60 hover:border-blue-500/50 transition-all cursor-pointer flex flex-col items-center justify-center gap-6 group relative overflow-hidden backdrop-blur-sm shadow-2xl"
                 onclick="document.getElementById('fileInput').click()"
-                ondragover="handleDragOver(event)"
-                ondrop="handleDrop(event)"
+                ondragover="window.handleDragOver(event)"
+                ondrop="window.handleDrop(event)"
             >
-                <input id="fileInput" type="file" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+                <input id="fileInput" type="file" class="hidden" accept="image/*" onchange="window.handleFileSelect(event)">
                 
                 <div class="relative">
                     <div class="absolute inset-0 bg-blue-500 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
@@ -207,7 +218,7 @@
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <i class="fa-solid fa-image"></i> Ảnh gốc
                         </h3>
-                        <button onclick="resetApp()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-medium transition-colors">
+                        <button onclick="window.resetApp()" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-medium transition-colors">
                             <i class="fa-solid fa-trash-can"></i> Xóa
                         </button>
                     </div>
@@ -224,7 +235,7 @@
                     
                     <button 
                         id="btn-consult"
-                        onclick="runConsultation()" 
+                        onclick="window.runConsultation()" 
                         class="w-full py-4 px-5 rounded-2xl flex items-center gap-4 bg-slate-800 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden"
                     >
                         <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
@@ -241,7 +252,7 @@
 
                     <button 
                         id="btn-cartoon"
-                        onclick="runCartoon()" 
+                        onclick="window.runCartoon()" 
                         class="w-full py-4 px-5 rounded-2xl flex items-center gap-4 bg-slate-800 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden"
                     >
                         <div class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
@@ -285,7 +296,7 @@
                         <h2 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center gap-3">
                             <i class="fa-solid fa-user-doctor text-blue-500"></i> Góc nhìn Chuyên gia
                         </h2>
-                        <button onclick="showEmptyState()" class="text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-medium">
+                        <button onclick="window.showEmptyState()" class="text-slate-400 hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-medium">
                             <i class="fa-solid fa-xmark mr-1"></i> Đóng
                         </button>
                     </div>
@@ -306,8 +317,8 @@
                             <i class="fa-solid fa-wand-sparkles text-purple-500"></i> Kết quả Hoạt họa
                         </h2>
                         <div class="flex gap-3">
-                            <button onclick="showEmptyState()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors">Quay lại</button>
-                            <button onclick="downloadGeneratedImage()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold shadow-lg shadow-purple-900/40 transform hover:-translate-y-0.5 transition-all">
+                            <button onclick="window.showEmptyState()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition-colors">Quay lại</button>
+                            <button onclick="window.downloadGeneratedImage()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold shadow-lg shadow-purple-900/40 transform hover:-translate-y-0.5 transition-all">
                                 <i class="fa-solid fa-download mr-2"></i> Lưu ảnh
                             </button>
                         </div>
@@ -329,50 +340,57 @@
         <p class="text-slate-500 font-medium">&copy; 2024 Tạo ảnh cùng Minh. <span class="text-slate-600 mx-2">|</span> Powered by Google Gemini & Imagen</p>
     </footer>
 
-    <!-- Logic Script -->
+    <!-- Application Logic -->
     <script type="module">
         import { GoogleGenAI } from "@google/genai";
 
-        // Global State
+        // State
         let uploadedImageBase64 = null;
         let generatedImageUrl = null;
-        let currentApiKey = localStorage.getItem('gemini_api_key') || '';
         let aiClient = null;
+        const apiKeyModal = document.getElementById('apiKeyModal');
 
-        // Initialize API Client
-        function initClient() {
-            if (currentApiKey) {
-                document.getElementById('apiKeyModal').classList.add('hidden-el');
+        // Helper: Check Key
+        function getStoredKey() {
+            return localStorage.getItem('gemini_api_key');
+        }
+
+        // Initialize
+        function init() {
+            const key = getStoredKey();
+            if (key) {
                 try {
-                    aiClient = new GoogleGenAI({ apiKey: currentApiKey });
+                    aiClient = new GoogleGenAI({ apiKey: key });
+                    apiKeyModal.classList.add('hidden-el');
                 } catch (e) {
-                    showError('API Key không hợp lệ hoặc lỗi khởi tạo.');
+                    window.showError("Lỗi khởi tạo AI Client. Vui lòng kiểm tra lại Key.");
+                    apiKeyModal.classList.remove('hidden-el');
                 }
             } else {
-                document.getElementById('apiKeyModal').classList.remove('hidden-el');
+                apiKeyModal.classList.remove('hidden-el');
             }
         }
 
-        // --- Event Listeners & Global Functions (attached to window for HTML access) ---
-
+        // Global functions for HTML access
         window.saveApiKey = function() {
             const input = document.getElementById('apiKeyInput');
             const key = input.value.trim();
             if (key) {
                 localStorage.setItem('gemini_api_key', key);
-                currentApiKey = key;
-                initClient();
+                init();
+            } else {
+                alert("Vui lòng nhập API Key.");
             }
         }
-
+        
         document.getElementById('saveApiKeyBtn').addEventListener('click', window.saveApiKey);
 
-        window.handleDragOver = function(e) {
+        window.handleDragOver = (e) => {
             e.preventDefault();
             e.stopPropagation();
         }
 
-        window.handleDrop = function(e) {
+        window.handleDrop = (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -380,41 +398,101 @@
             }
         }
 
-        window.handleFileSelect = function(e) {
+        window.handleFileSelect = (e) => {
             if (e.target.files && e.target.files[0]) {
                 processFile(e.target.files[0]);
             }
         }
 
+        function processFile(file) {
+            if (!file.type.startsWith('image/')) {
+                window.showError('Vui lòng chọn file ảnh (JPG, PNG).');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                window.showError('File quá lớn (Tối đa 10MB).');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImageBase64 = e.target.result;
+                document.getElementById('preview-image').src = uploadedImageBase64;
+                document.getElementById('upload-view').classList.add('hidden-el');
+                document.getElementById('editor-view').classList.remove('hidden-el');
+                window.clearError();
+                window.showEmptyState();
+            };
+            reader.readAsDataURL(file);
+        }
+
         window.resetApp = function() {
             uploadedImageBase64 = null;
             generatedImageUrl = null;
-            
             document.getElementById('upload-view').classList.remove('hidden-el');
             document.getElementById('editor-view').classList.add('hidden-el');
-            document.getElementById('fileInput').value = ''; // Reset input
-            clearError();
-            showEmptyState();
+            document.getElementById('fileInput').value = '';
+            window.clearError();
         }
 
         window.clearError = function() {
             document.getElementById('error-msg').classList.add('hidden-el');
         }
 
+        window.showError = function(msg) {
+            document.getElementById('error-text').innerText = msg;
+            document.getElementById('error-msg').classList.remove('hidden-el');
+        }
+
         window.showEmptyState = function() {
             document.getElementById('empty-state').classList.remove('hidden-el');
             document.getElementById('result-consult').classList.add('hidden-el');
             document.getElementById('result-cartoon').classList.add('hidden-el');
-            
-            // Reset button styles
-            setActiveButton(null);
+            updateActiveButton(null);
         }
 
+        function updateActiveButton(type) {
+            const btnConsult = document.getElementById('btn-consult');
+            const btnCartoon = document.getElementById('btn-cartoon');
+            const checkConsult = document.getElementById('check-consult');
+            const checkCartoon = document.getElementById('check-cartoon');
+
+            // Reset
+            const baseClasses = "w-full py-4 px-5 rounded-2xl flex items-center gap-4 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden";
+            btnConsult.className = baseClasses + " bg-slate-800";
+            btnCartoon.className = baseClasses + " bg-slate-800";
+            checkConsult.classList.add('hidden-el');
+            checkCartoon.classList.add('hidden-el');
+
+            if (type === 'consult') {
+                btnConsult.className = baseClasses + " bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500 shadow-lg shadow-blue-900/20";
+                checkConsult.classList.remove('hidden-el');
+            } else if (type === 'cartoon') {
+                btnCartoon.className = baseClasses + " bg-gradient-to-r from-purple-600 to-purple-700 border-purple-500 shadow-lg shadow-purple-900/20";
+                checkCartoon.classList.remove('hidden-el');
+            }
+        }
+
+        function setLoading(loading, text = "") {
+            const overlay = document.getElementById('loading-overlay');
+            const txt = document.getElementById('loading-text');
+            if (loading) {
+                txt.innerText = text;
+                overlay.classList.remove('hidden-el');
+            } else {
+                overlay.classList.add('hidden-el');
+            }
+        }
+
+        // Feature: Consult
         window.runConsultation = async function() {
-            if (!checkRequirements()) return;
-            
-            setLoading(true, 'Đang phân tích hình ảnh và soạn thảo lời khuyên...');
-            setActiveButton('consult');
+            if (!aiClient) {
+                apiKeyModal.classList.remove('hidden-el');
+                return;
+            }
+            window.clearError();
+            setLoading(true, "AI đang phân tích bức ảnh của bạn...");
+            updateActiveButton('consult');
 
             try {
                 const base64Data = uploadedImageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
@@ -423,66 +501,67 @@
                     model: 'gemini-2.5-flash',
                     contents: {
                         parts: [
-                            {
-                                inlineData: {
-                                    mimeType: 'image/jpeg',
-                                    data: base64Data
-                                }
-                            },
-                            {
-                                text: 'Bạn là một chuyên gia nhiếp ảnh và nghệ thuật thị giác hàng đầu. Hãy phân tích bức ảnh này. Đưa ra nhận xét về bố cục, ánh sáng, màu sắc. Sau đó, hãy tư vấn cụ thể để cải thiện bức ảnh này (ví dụ: crop thế nào, chỉnh màu ra sao, thêm bối cảnh gì cho phù hợp). Hãy trả lời bằng tiếng Việt một cách chuyên nghiệp, thân thiện và trình bày dễ đọc (dùng gạch đầu dòng).'
-                            }
+                            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
+                            { text: 'Bạn là chuyên gia nhiếp ảnh. Hãy phân tích ảnh này (bố cục, ánh sáng, màu sắc) và đưa ra lời khuyên cải thiện. Trả lời bằng tiếng Việt, ngắn gọn, dùng gạch đầu dòng.' }
                         ]
                     },
                     config: { temperature: 0.7 }
                 });
 
-                const advice = response.text || 'Không thể nhận được phản hồi từ AI.';
-                
-                // Display result
-                document.getElementById('advice-content').innerText = advice;
+                document.getElementById('advice-content').innerText = response.text;
                 document.getElementById('empty-state').classList.add('hidden-el');
                 document.getElementById('result-consult').classList.remove('hidden-el');
                 document.getElementById('result-cartoon').classList.add('hidden-el');
 
-            } catch (err) {
-                console.error(err);
-                showError('Có lỗi xảy ra khi lấy tư vấn từ AI. Kiểm tra API Key hoặc thử lại sau.');
-                setActiveButton(null);
+            } catch (e) {
+                console.error(e);
+                window.showError("Lỗi kết nối AI. Vui lòng kiểm tra API Key.");
+                updateActiveButton(null);
             } finally {
                 setLoading(false);
             }
         }
 
+        // Feature: Cartoon
         window.runCartoon = async function() {
-            if (!checkRequirements()) return;
-
-            setLoading(true, 'Đang vẽ lại ảnh theo phong cách hoạt hình (có thể mất vài giây)...');
-            setActiveButton('cartoon');
+            if (!aiClient) {
+                apiKeyModal.classList.remove('hidden-el');
+                return;
+            }
+            window.clearError();
+            setLoading(true, "Đang vẽ lại theo phong cách hoạt hình (có thể mất 15-30s)...");
+            updateActiveButton('cartoon');
 
             try {
                 const base64Data = uploadedImageBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, '');
 
-                // Step 1: Get description
-                const descriptionResponse = await aiClient.models.generateContent({
+                // 1. Get description
+                const descResponse = await aiClient.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: {
                         parts: [
                             { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
-                            { text: 'Describe the main subject, setting, composition, and colors of this image in English. Keep it concise but descriptive.' }
+                            { text: 'Describe the main subject, clothing, colors, and background of this image in English. Be concise.' }
+                        ]
+                    },
+                    // Safety settings to prevent blocking harmless portraits
+                    config: {
+                        safetySettings: [
+                            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
                         ]
                     }
                 });
 
-                const description = descriptionResponse.text;
-                if (!description) throw new Error('Không thể phân tích ảnh gốc.');
-
-                // Step 2: Generate Image
-                const cartoonPrompt = `${description}. Cartoon style, vibrant colors, clean lines, high quality digital art, disney pixar style, 3d render.`;
-
+                const description = descResponse.text;
+                
+                // 2. Generate Image using Imagen 3
+                // Using 3.0 as 4.0 may have stricter access controls for some keys
                 const imageResponse = await aiClient.models.generateImages({
-                    model: 'imagen-3.0-generate-001', // Note: Using 3.0 as 4.0 might be restricted in some keys
-                    prompt: cartoonPrompt,
+                    model: 'imagen-4.0-generate-001',
+                    prompt: `Cartoon style, 3d render, disney pixar style, cute, vibrant lighting, high quality. Subject: ${description}`,
                     config: {
                         numberOfImages: 1,
                         aspectRatio: '1:1',
@@ -490,116 +569,44 @@
                     }
                 });
 
-                if (imageResponse.generatedImages && imageResponse.generatedImages.length > 0) {
-                    const newImageBase64 = `data:image/jpeg;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
-                    generatedImageUrl = newImageBase64;
-                    document.getElementById('generated-image').src = newImageBase64;
+                if (imageResponse.generatedImages?.length > 0) {
+                    const newImage = `data:image/jpeg;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
+                    generatedImageUrl = newImage;
+                    document.getElementById('generated-image').src = newImage;
                     
                     document.getElementById('empty-state').classList.add('hidden-el');
                     document.getElementById('result-cartoon').classList.remove('hidden-el');
                     document.getElementById('result-consult').classList.add('hidden-el');
                 } else {
-                    throw new Error('Không tạo được ảnh.');
+                    throw new Error("Không có ảnh trả về.");
                 }
 
-            } catch (err) {
-                console.error(err);
-                showError('Không thể tạo ảnh hoạt hình lúc này. Hãy thử lại sau hoặc kiểm tra quyền truy cập model Imagen.');
-                setActiveButton(null);
+            } catch (e) {
+                console.error(e);
+                let msg = "Không thể tạo ảnh lúc này. ";
+                if (e.toString().includes("403") || e.toString().includes("permission")) {
+                    msg += "API Key của bạn có thể không có quyền truy cập Imagen 3/4. Vui lòng kiểm tra trên Google AI Studio.";
+                } else {
+                    msg += "Vui lòng thử lại sau.";
+                }
+                window.showError(msg);
+                updateActiveButton(null);
             } finally {
                 setLoading(false);
             }
         }
 
         window.downloadGeneratedImage = function() {
-            if (!generatedImageUrl) return;
-            const link = document.createElement('a');
-            link.href = generatedImageUrl;
-            link.download = 'tao-anh-cung-minh-result.jpg';
-            link.click();
-        }
-
-        // --- Internal Helpers ---
-
-        function processFile(file) {
-            if (!file.type.startsWith('image/')) {
-                showError('Vui lòng chọn một tệp hình ảnh hợp lệ (JPG, PNG).');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                uploadedImageBase64 = e.target.result;
-                document.getElementById('preview-image').src = uploadedImageBase64;
-                
-                // Switch View
-                document.getElementById('upload-view').classList.add('hidden-el');
-                document.getElementById('editor-view').classList.remove('hidden-el');
-                
-                clearError();
-                showEmptyState();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function checkRequirements() {
-            if (!uploadedImageBase64) return false;
-            if (!aiClient) {
-                document.getElementById('apiKeyModal').classList.remove('hidden-el');
-                return false;
-            }
-            return true;
-        }
-
-        function showError(msg) {
-            document.getElementById('error-text').innerText = msg;
-            document.getElementById('error-msg').classList.remove('hidden-el');
-        }
-
-        function setLoading(isLoading, text = '') {
-            const overlay = document.getElementById('loading-overlay');
-            const loadingText = document.getElementById('loading-text');
-            
-            if (isLoading) {
-                loadingText.innerText = text;
-                overlay.classList.remove('hidden-el');
-            } else {
-                overlay.classList.add('hidden-el');
+            if (generatedImageUrl) {
+                const link = document.createElement('a');
+                link.href = generatedImageUrl;
+                link.download = 'tao-anh-cung-minh-result.jpg';
+                link.click();
             }
         }
 
-        function setActiveButton(type) {
-            const btnConsult = document.getElementById('btn-consult');
-            const btnCartoon = document.getElementById('btn-cartoon');
-            const checkConsult = document.getElementById('check-consult');
-            const checkCartoon = document.getElementById('check-cartoon');
-
-            // Reset classes
-            const baseClasses = "w-full py-4 px-5 rounded-2xl flex items-center gap-4 hover:bg-slate-700/80 transition-all group text-left border border-slate-700/50 shadow-sm relative overflow-hidden";
-            const activeConsult = baseClasses + " from-blue-600 to-blue-700 bg-gradient-to-r border-blue-500";
-            const inactive = baseClasses + " bg-slate-800 border-transparent";
-            const activeCartoon = baseClasses + " from-purple-600 to-purple-700 bg-gradient-to-r border-purple-500";
-
-            if (type === 'consult') {
-                btnConsult.className = activeConsult;
-                btnCartoon.className = inactive;
-                checkConsult.classList.remove('hidden-el');
-                checkCartoon.classList.add('hidden-el');
-            } else if (type === 'cartoon') {
-                btnConsult.className = inactive;
-                btnCartoon.className = activeCartoon;
-                checkConsult.classList.add('hidden-el');
-                checkCartoon.classList.remove('hidden-el');
-            } else {
-                btnConsult.className = inactive;
-                btnCartoon.className = inactive;
-                checkConsult.classList.add('hidden-el');
-                checkCartoon.classList.add('hidden-el');
-            }
-        }
-
-        // Initialize on load
-        initClient();
+        // Start
+        init();
     </script>
 </body>
 </html>
